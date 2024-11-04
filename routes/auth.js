@@ -20,7 +20,8 @@ router.post('/signup', async (req, res) => {
     const token = jwt.sign({ username, email, password }, process.env.JWT_SECRET, { expiresIn: '1h' });
 
     const verificationLink = `http://localhost:3000/api/auth/verify-email?token=${token}`;
-
+    const newUser = new User ({ email, isVerified: false});
+    await newUser.save();
     // Gửi email xác minh với link chứa token
     const transporter = createTransporter();
     await transporter.sendMail({
@@ -29,52 +30,63 @@ router.post('/signup', async (req, res) => {
       html: `<p>Nhấn vào liên kết sau để xác minh email của bạn: <a href="${verificationLink}">Xác minh Email</a></p>`,
     });
 
-    res.status(201).json({ message: 'Vui lòng kiểm tra email để xác minh tài khoản.',isVerified:false });
+    res.status(201).json({ message: 'Vui lòng kiểm tra email để xác minh tài khoản.', email, token: token,});
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: 'Lỗi server.' });
   }
 });
 
-// API Xác minh email
 router.get('/verify-email', async (req, res) => {
-  const { token } = req.query;
-  if (!token) return res.status(400).json({ message: 'Token không hợp lệ' });
-  
+  const token = req.query.token;
+  if (!token) {
+      return res.status(400).json({ message: 'Token không hợp lệ' });
+  }
+
   try {
-    // Giải mã token để lấy thông tin người dùng
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    const { username, email, password } = decoded;
+      const decoded = jwt.verify(token, process.env.JWT_SECRET);
+      const { username, email, password } = decoded;
 
-    // Kiểm tra xem người dùng đã tồn tại và đã được xác minh hay chưa
-    const existingUser = await User.findOne({ email });
+      const user = await User.findOne({ email });
 
-    if (existingUser) {
-      if (existingUser.isVerified) {
-        return res.status(400).json({ message: 'Email đã được xác minh trước đó.' });
-      } else {
-        // Cập nhật isVerified thành true
-        existingUser.isVerified = true;
-       
-        res.json({ message: 'Email của bạn đã được xác minh thành công! Bạn có thể đăng nhập.', isVerified: true });
-        console.log(message + isVerified);
-        await existingUser.save();
+      if (!user) {
+          return res.status(404).json({ message: 'Người dùng không tồn tại.' });
       }
-    }
-    else{
 
-  
-    // Nếu người dùng chưa tồn tại, băm mật khẩu và lưu vào database
-    const epass = await bcrypt.hash(password, 10);
-    const user = new User({ username, email, password: epass, isVerified: true });
-    res.json({ message: 'Email của bạn đã được xác minh thành công! Bạn có thể đăng nhập.', isVerified: true });}
-    await user.save();
-    
+      if (user.isVerified) {
+          return res.status(400).json({ message: 'Tài khoản đã được xác thực.' });
+      }
+
+      const hashedPassword = await bcrypt.hash(password, 10);
+      const updatedUser = await User.findOneAndUpdate(
+          { email }, 
+          { username, email, password: hashedPassword, isVerified: true },
+          { new: true }
+      );
+
+      res.json({ message: 'Tài khoản của bạn đã được xác thực thành công' });
   } catch (error) {
-    console.error(error);
-    res.status(400).json({ message: 'Liên kết xác minh không hợp lệ hoặc đã hết hạn', isVerified: false });
+      res.status(500).json({ message: 'Lỗi xác thực tài khoản' });
   }
 });
+
+
+// API kiểm tra trạng thái xác thực
+router.get('/check-verification-status', async (req, res) => {
+  const email =req.query;
+  try {
+      const user = await User.findOne(email); 
+      console.log(user);
+      if (!user) {
+          return res.status(404).json({ message: 'Không tìm thấy người dùng' });
+      }
+      res.json({ isVerified: user.isVerified });
+  } catch (error) {
+      res.status(500).json({ message: 'Lỗi kiểm tra trạng thái' });
+  }
+});
+
+
 
 
 
