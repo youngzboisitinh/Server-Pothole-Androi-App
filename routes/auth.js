@@ -21,7 +21,7 @@ router.post("/signup", async (req, res) => {
       { expiresIn: "1h" }
     );
 
-    const verificationLink = `http://localhost:3000/api/auth/verify-email?token=${token}`;
+    const verificationLink = `https://server-pothole-androi-app.onrender.com/api/auth/verify-email?token=${token}`;
     const newUser = new User({ email, isVerified: false });
     await newUser.save();
     // Gửi email xác minh với link chứa token
