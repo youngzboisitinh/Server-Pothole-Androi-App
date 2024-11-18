@@ -5,12 +5,11 @@ const userSchema = new mongoose.Schema({
   username: { type: String, unique: true },
   email: { type: String, required: true, unique: true },
   password: { type: String },
-  status: { type: String, enum: ['online', 'offline'],default: 'offline'},
+  status: { type: String, enum: ["online", "offline"], default: "offline" },
   isVerified: { type: Boolean, default: false },
   verificationCode: { type: String },
   verificationCodeExpires: { type: Date },
 });
-
 
 // Phương thức xác thực mật khẩu
 userSchema.methods.isValidPassword = async function (password) {
