@@ -3,10 +3,8 @@ const router = express.Router();
 const { User } = require("../models/User");
 const bcrypt = require("bcryptjs");
 const nodemailer = require("nodemailer");
-const { OAuth2Client } = require("google-auth-library");
 const jwt = require("jsonwebtoken");
 
-const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 // API Đăng ký
 router.post("/signup", async (req, res) => {
   const { username, email, password } = req.body;
@@ -22,7 +20,7 @@ router.post("/signup", async (req, res) => {
     );
 
     const verificationLink = `https://server-pothole-androi-app.onrender.com/api/auth/verify-email?token=${token}`;
-    const newUser = new User({ email, isVerified: false });
+    const newUser = new User({ email, isVerified: false});
     await newUser.save();
     // Gửi email xác minh với link chứa token
     const transporter = createTransporter();
@@ -66,7 +64,7 @@ router.get("/verify-email", async (req, res) => {
     const hashedPassword = await bcrypt.hash(password, 10);
     const updatedUser = await User.findOneAndUpdate(
       { email },
-      { username, email, password: hashedPassword, isVerified: true },
+      { username, email, password: hashedPassword, isVerified: true, online: false },
       { new: true }
     );
 
@@ -99,22 +97,30 @@ router.post("/login", async (req, res) => {
     if (!user)
       return res
         .status(400)
-        .json({ message: "Tên đăng nhập hoặc mật khẩu không đúng1" });
+        .json({ message: "Tên đăng nhập hoặc mật khẩu không đúng" });
+    
     const isMatch = await user.isValidPassword(password);
     if (!isMatch)
       return res
         .status(400)
         .json({ message: "Tên đăng nhập hoặc mật khẩu không đúng" });
 
+    // Cập nhật trạng thái người dùng thành 'online'
+    user.status = 'online';
+    await user.save();
+
     const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, {
       expiresIn: "1h",
     });
-    res.json({ token, message: "Đăng nhập thành công!" });
+    
+    res.json({ token, message: "Đăng nhập thành công!", status: user.status });
   } catch (error) {
     console.error(error); // In lỗi ra console
     res.status(500).json({ message: "Lỗi server." });
   }
 });
+
+
 
 // Tạo transporter một lần
 const createTransporter = () => {
@@ -203,36 +209,28 @@ router.post("/reset-password", async (req, res) => {
   }
 });
 
-//Đăng nhập Google
-// router.post('/google-login', async (req, res) => {
-//   const { idToken } = req.body;
+// API Đăng xuất
+router.post("/logout", async (req, res) => {
+  const { userId } = req.body;  // Giả sử bạn gửi userId trong body của request, hoặc từ token
 
-//   try {
-//     // Xác minh ID token với Google
-//     const ticket = await client.verifyIdToken({
-//       idToken,
-//       audience: process.env.GOOGLE_CLIENT_ID,
-//     });
-//     const payload = ticket.getPayload();
+  try {
+    const user = await User.findById(userId);
 
-//     const { email, name, picture } = payload;
+    if (!user) {
+      return res.status(404).json({ message: "Người dùng không tồn tại" });
+    }
 
-//     // Kiểm tra xem người dùng đã tồn tại trong hệ thống chưa
-//     let user = await UserGoogle.findOne({ email });
-//     if (!user) {
-//       // Nếu chưa tồn tại, tạo tài khoản mới
-//       user = new UserGoogle({ username: name, email, profileImage: picture });
-//       await user.save();
-//     }
+    // Cập nhật trạng thái người dùng thành 'offline'
+    user.status = 'offline';
+    await user.save();
 
-//     // Tạo JWT token cho người dùng
-//     const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: '1h' });
+    // Trả về thông báo đăng xuất thành công
+    res.json({ message: "Đăng xuất thành công", status: user.status });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Lỗi đăng xuất, vui lòng thử lại." });
+  }
+});
 
-//     res.json({ message: 'Đăng nhập bằng Google thành công!', token });
-//   } catch (error) {
-//     console.error('Google login error:', error);
-//     res.status(500).json({ message: 'Lỗi xác thực Google.' });
-//   }
-// });
 
 module.exports = router;
