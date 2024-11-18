@@ -3,7 +3,8 @@ const mongoose = require("mongoose");
 const dotenv = require("dotenv");
 const authRoutes = require("./routes/auth");
 const holeRoutes = require("./routes/holeRoutes");
-
+const placeRoutes = require("./routes/placeRoutes");
+const navigation = require("./routes/navigation");
 dotenv.config();
 
 const app = express();
@@ -24,6 +25,8 @@ app.use((req, res, next) => {
 // Sử dụng route xác thực
 app.use("/api/auth", authRoutes);
 app.use("/api/hole", holeRoutes);
+app.use("/api/search", placeRoutes);
+app.use("/api/navigation", navigation);
 mongoose
   .connect(process.env.MONGODB_URI)
   .then(() => console.log("Connected to MongoDB"))
