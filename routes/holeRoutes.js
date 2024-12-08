@@ -1,7 +1,8 @@
 const express = require("express");
 const { Pothole } = require("../models/pothole");
+const authenticateToken = require("../middleware/auth");
 const router = express.Router();
-router.get("/add", async (req, res) => {
+router.get("/add", authenticateToken, async (req, res) => {
   try {
     const locations = await Pothole.find();
     res.json(locations);
@@ -11,7 +12,7 @@ router.get("/add", async (req, res) => {
   }
 });
 
-router.post("/add", async (req, res) => {
+router.post("/add", authenticateToken, async (req, res) => {
   try {
     const { latitude, longitude, type, author } = req.body;
     const newHole = new Pothole({ latitude, longitude, type, author });

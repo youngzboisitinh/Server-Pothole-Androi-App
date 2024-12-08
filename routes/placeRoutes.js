@@ -1,8 +1,9 @@
 const express = require("express");
 const router = express.Router();
+const authenticateToken = require("../middleware/auth");
 const Place = require("../models/PlaceFeature");
 
-router.get("/", async (req, res) => {
+router.get("/", authenticateToken, async (req, res) => {
   const keyword = req.query.keyword?.trim();
   const page = parseInt(req.query.page) || 1;
   const limit = parseInt(req.query.limit) || 10;

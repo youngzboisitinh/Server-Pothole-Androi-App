@@ -1,8 +1,8 @@
 const jwt = require("jsonwebtoken");
 
 function auth(req, res, next) {
-  // Lấy token từ header Authorization
-  const token = req.header("Authorization")?.replace("Bearer ", ""); // Thêm xử lý trường hợp Bearer token
+  const token = req.header("Authorization")?.replace("Bearer ", "");
+  
   if (!token) {
     return res
       .status(401)
@@ -11,7 +11,9 @@ function auth(req, res, next) {
 
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    req.user = decoded; // Gán thông tin người dùng vào request để sử dụng ở các route khác
+
+    req.user = decoded;
+
     next();
   } catch (error) {
     res.status(400).json({ message: "Invalid token" });

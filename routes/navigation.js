@@ -1,13 +1,14 @@
 const axios = require("axios");
 const express = require("express");
 const router = express.Router();
+const authenticateToken = require("../middleware/auth");
 
 const isValidCoordinates = (coord) => {
   const regex = /^-?\d+(\.\d{1,})?,-?\d+(\.\d{1,})?$/;
   return regex.test(coord);
 };
 
-router.get("/", async (req, res) => {
+router.get("/", authenticateToken, async (req, res) => {
   const start = req.query.start;
   const destination = req.query.destination;
   console.log(start + " " + destination);
