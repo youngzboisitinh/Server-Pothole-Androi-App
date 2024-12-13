@@ -9,6 +9,13 @@ const userSchema = new mongoose.Schema({
   isVerified: { type: Boolean, default: false },
   verificationCode: { type: String },
   verificationCodeExpires: { type: Date },
+  nickname: { type: String },
+  address: { type: String },
+  phoneNumber: { type: String },
+  sex: { type: String },
+  bio: { type: String },
+  dateOfBirth: { type: Date },
+  profilePicture: { type: String },
 });
 
 // Phương thức xác thực mật khẩu

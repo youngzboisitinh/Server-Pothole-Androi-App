@@ -7,14 +7,8 @@ router.get("/", authenticateToken, async (req, res) => {
   const keyword = req.query.keyword?.trim();
   const page = parseInt(req.query.page) || 1;
   const limit = parseInt(req.query.limit) || 10;
-
-  if (!keyword) {
-    return res.status(400).json({ message: "Keyword is required" });
-  }
-
   try {
     const regex = new RegExp(keyword.split(" ").join(".*"), "i");
-
     const places = await Place.aggregate([
       { $unwind: "$features" },
       {

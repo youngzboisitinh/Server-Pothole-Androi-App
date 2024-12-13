@@ -1,4 +1,6 @@
 const express = require("express");
+const multer = require("multer");
+const path = require("path");
 const router = express.Router();
 const { User } = require("../models/User");
 const bcrypt = require("bcryptjs");
@@ -101,21 +103,17 @@ router.post("/login", async (req, res) => {
       return res
         .status(400)
         .json({ message: "Tên đăng nhập hoặc mật khẩu không đúng" });
-
     const isMatch = await user.isValidPassword(password);
     if (!isMatch)
       return res
         .status(400)
         .json({ message: "Tên đăng nhập hoặc mật khẩu không đúng" });
-
     // Cập nhật trạng thái người dùng thành 'online'
     user.status = "online";
     await user.save();
-
     const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, {
       expiresIn: "1h",
     });
-
     res.json({
       token,
       message: "Đăng nhập thành công!",
@@ -231,6 +229,79 @@ router.post("/logout", async (req, res) => {
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: "Lỗi đăng xuất, vui lòng thử lại." });
+  }
+});
+
+const storage = multer.diskStorage({
+  destination: function (req, file, cb) {
+    cb(null, "uploads/"); // Thư mục lưu trữ ảnh. Đảm bảo thư mục này tồn tại
+  },
+  filename: function (req, file, cb) {
+    // Tạo tên file duy nhất
+    cb(null, Date.now() + path.extname(file.originalname));
+  },
+});
+
+// Kiểm tra loại file (tùy chọn)
+const fileFilter = (req, file, cb) => {
+  console.log("Uploaded file MIME:", file.mimetype); // Log MIME type
+  console.log("Uploaded file extension:", path.extname(file.originalname)); // Log file extension
+
+  const allowedTypes = /jpeg|jpg|png|gif/;
+  const extname = allowedTypes.test(
+    path.extname(file.originalname).toLowerCase()
+  );
+  const mimetype = file.mimetype.startsWith("image/"); // Allow any image mime type (e.g., image/jpeg, image/png)
+
+  if (mimetype && extname) {
+    return cb(null, true);
+  } else {
+    cb("Error: Images Only!");
+  }
+};
+// Khởi tạo Multer
+const upload = multer({
+  storage: storage,
+  limits: { fileSize: 5 * 1024 * 1024 }, // Giới hạn kích thước file 5MB
+  fileFilter: fileFilter,
+});
+
+// Định nghĩa route với middleware upload.single
+router.put("/updateUser", upload.single("image"), async (req, res) => {
+  try {
+    const { email } = req.query;
+    const { nickname, address, phoneNumber, sex, bio, birthday } = req.body;
+    console.log(email);
+    console.log("Email:", email);
+
+    const user = await User.findOne({ email });
+    if (!user) {
+      return res.status(404).json({ message: "Người dùng không tồn tại." });
+    }
+
+    // Cập nhật thông tin người dùng
+    user.nickname = nickname || user.nickname;
+    user.address = address || user.address;
+    user.phoneNumber = phoneNumber || user.phoneNumber;
+    user.sex = sex || user.sex;
+    user.bio = bio || user.bio;
+    user.birthday = birthday || user.birthday;
+
+    // Xử lý ảnh profile nếu có
+    if (req.file) {
+      // Bạn có thể lưu đường dẫn file hoặc xử lý khác tùy nhu cầu
+      user.profilePicture = req.file.path; // Lưu đường dẫn file vào database
+    }
+
+    await user.save(); // Lưu thay đổi
+
+    res.status(200).json({
+      message: "Cập nhật thông tin người dùng thành công!",
+      user,
+    });
+  } catch (error) {
+    console.error("Error updating user info:", error);
+    res.status(500).json({ message: "Lỗi server. Vui lòng thử lại sau." });
   }
 });
 //Đăng nhập Google

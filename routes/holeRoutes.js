@@ -14,9 +14,10 @@ router.get("/add", authenticateToken, async (req, res) => {
 
 router.post("/add", authenticateToken, async (req, res) => {
   try {
-    const { latitude, longitude, type, author } = req.body;
-    const newHole = new Pothole({ latitude, longitude, type, author });
+    const { latitude, longitude, type, author, date } = req.body;
+    const newHole = new Pothole({ latitude, longitude, type, author, date });
     const hole = Pothole.find();
+    console.log("" + newHole);
     if (
       newHole.latitude == hole.latitude &&
       newHole.longitude == hole.longitude
