@@ -12,9 +12,10 @@ const userSchema = new mongoose.Schema({
   nickname: { type: String },
   address: { type: String },
   phoneNumber: { type: String },
+  since: { type: String },
   sex: { type: String },
   bio: { type: String },
-  dateOfBirth: { type: Date },
+  dateOfBirth: { type: String },
   profilePicture: { type: String },
 });
 

@@ -6,6 +6,7 @@ const holeRoutes = require("./routes/holeRoutes");
 const placeRoutes = require("./routes/placeRoutes");
 const navigation = require("./routes/navigation");
 const download = require("./routes/downloadmap");
+const profile = require("./routes/userRoute");
 dotenv.config();
 
 const app = express();
@@ -29,6 +30,7 @@ app.use("/api/hole", holeRoutes);
 app.use("/api/search", placeRoutes);
 app.use("/api/navigation", navigation);
 app.use("/api/download-map", download);
+app.use("/api/profile", profile);
 mongoose
   .connect(process.env.MONGODB_URI)
   .then(() => console.log("Connected to MongoDB"))
