@@ -99,18 +99,21 @@ router.post("/login", async (req, res) => {
     if (!user)
       return res
         .status(400)
-        .json({ message: "Tên đăng nhập hoặc mật khẩu không đúng1" });
+        .json({ message: "Tên đăng nhập hoặc mật khẩu không đúng" });
     const isMatch = await user.isValidPassword(password);
     if (!isMatch)
       return res
         .status(400)
         .json({ message: "Tên đăng nhập hoặc mật khẩu không đúng" });
 
+
+    const isFirstLogin = user.isFirstLogin;
+
     const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, {
       expiresIn: "1h",
     });
-    res.json({ token, message: "Đăng nhập thành công!" });
-  } catch (error) {
+    res.json({ token, isFirstLogin, message: "Đăng nhập thành công!" });
+      } catch (error) {
     console.error(error); // In lỗi ra console
     res.status(500).json({ message: "Lỗi server." });
   }
@@ -234,5 +237,152 @@ router.post("/reset-password", async (req, res) => {
 //     res.status(500).json({ message: 'Lỗi xác thực Google.' });
 //   }
 // });
+
+// Thêm Swagger
+/**
+ * @swagger
+ * components:
+ *   schemas:
+ *     User:
+ *       type: object
+ *       properties:
+ *         username:
+ *           type: string
+ *           description: Username of the user
+ *         email:
+ *           type: string
+ *           description: Email of the user
+ *         password:
+ *           type: string
+ *           description: Password of the user
+ *     TokenResponse:
+ *       type: object
+ *       properties:
+ *         token:
+ *           type: string
+ *           description: JWT token
+ *         message:
+ *           type: string
+ *           description: Response message
+ */
+
+/**
+ * @swagger
+ * /auth/signup:
+ *   post:
+ *     summary: Register a new user
+ *     tags: [Authentication]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               username:
+ *                 type: string
+ *                 example: user123
+ *               email:
+ *                 type: string
+ *                 example: user@example.com
+ *               password:
+ *                 type: string
+ *                 example: password123
+ *     responses:
+ *       201:
+ *         description: User registered successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/TokenResponse'
+ *       400:
+ *         description: User already exists
+ *       500:
+ *         description: Server error
+ */
+
+/**
+ * @swagger
+ * /auth/verify-email:
+ *   get:
+ *     summary: Verify user email
+ *     tags: [Authentication]
+ *     parameters:
+ *       - in: query
+ *         name: token
+ *         schema:
+ *           type: string
+ *         required: true
+ *         description: JWT token for email verification
+ *     responses:
+ *       200:
+ *         description: Email verified successfully
+ *       400:
+ *         description: Invalid or expired token
+ *       500:
+ *         description: Server error
+ */
+
+/**
+ * @swagger
+ * /auth/login:
+ *   post:
+ *     summary: Login and get a JWT token
+ *     tags: [Authentication]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               username:
+ *                 type: string
+ *                 example: user123
+ *               password:
+ *                 type: string
+ *                 example: password123
+ *     responses:
+ *       200:
+ *         description: Login successful
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/TokenResponse'
+ *       400:
+ *         description: Invalid credentials
+ *       500:
+ *         description: Server error
+ */
+
+/**
+ * @swagger
+ * /auth/check-verification-status:
+ *   get:
+ *     summary: Check if a user is verified
+ *     tags: [Authentication]
+ *     parameters:
+ *       - in: query
+ *         name: email
+ *         schema:
+ *           type: string
+ *         required: true
+ *         description: Email of the user
+ *     responses:
+ *       200:
+ *         description: Returns verification status
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 isVerified:
+ *                   type: boolean
+ *       404:
+ *         description: User not found
+ *       500:
+ *         description: Server error
+ */
+
 
 module.exports = router;
