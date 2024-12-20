@@ -21,14 +21,23 @@ router.get("/", authenticateToken, async (req, res) => {
   try {
     const osrmUrl = `http://router.project-osrm.org/route/v1/driving/${start};${destination}?overview=full&geometries=geojson`;
     const response = await axios.get(osrmUrl);
-    const coordinates = response.data.routes[0].geometry.coordinates;
-    const extractedCoordinates = coordinates.map((coordinate, index) => {
+    const route = response.data.routes[0];
+    const coordinates = route.geometry.coordinates;
+
+    // Độ dài quãng đường (meters) và thời gian ước tính (seconds)
+    const distance = route.distance; // Đơn vị: meters
+    const duration = route.duration; // Đơn vị: seconds
+
+    // Chuyển đổi toạ độ thành các đối tượng { longitude, latitude }
+    const extractedCoordinates = coordinates.map((coordinate) => {
       const longitude = coordinate[0];
       const latitude = coordinate[1];
       return { longitude, latitude };
     });
     res.json({
       status: "success",
+      distance,
+      duration,
       coordinates: extractedCoordinates,
     });
   } catch (error) {
