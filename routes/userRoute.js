@@ -45,27 +45,40 @@ router.put("/update", upload.single("image"), async (req, res) => {
   try {
     const { email } = req.query;
     const { name, address, sex, bio, birthday, phone, since } = req.body;
-    console.log("" + name + phone + birthday);
+
+    // Tìm người dùng qua email
     const user = await User.findOne({ email });
     if (!user) {
       return res.status(404).json({ message: "Người dùng không tồn tại." });
     }
 
-    user.nickname = name ?? user.nickname;
-    user.address = address ?? user.address;
-    user.phoneNumber = phone ?? user.phoneNumber;
-    user.sex = sex ?? user.sex;
-    user.bio = bio ?? user.bio;
-    user.dateOfBirth = birthday ?? user.dateOfBirth;
-    user.since = since ?? user.since;
+    // Tạo đối tượng cập nhật
+    const updates = {};
+    if (name) updates.nickname = name;
+    if (address) updates.address = address;
+    if (phone) updates.phoneNumber = phone;
+    if (sex) updates.sex = sex;
+    if (bio) updates.bio = bio;
+    if (birthday) updates.dateOfBirth = birthday;
+    if (since) updates.since = since;
+
+    // Xử lý ảnh (nếu có)
     if (req.file) {
-      user.profilePicture = req.file.path;
+      updates.profilePicture = req.file.path;
     }
 
+    // Gán giá trị mới cho user (thêm trường nếu chưa tồn tại)
+    Object.keys(updates).forEach((key) => {
+      user[key] = updates[key];
+    });
+
+    // Lưu người dùng
     await user.save();
 
+    // Phản hồi thành công
     res.status(200).json({
       message: "Cập nhật thông tin người dùng thành công!",
+      updatedFields: updates,
       user,
     });
   } catch (error) {
@@ -100,6 +113,7 @@ router.get("/get", async (req, res) => {
       profilePicture: imagePath,
       since: user.since,
       sex: user.sex,
+      phone: user.phoneNumber,
     });
   } catch (error) {
     console.error("Error fetching user profile:", error.message);
