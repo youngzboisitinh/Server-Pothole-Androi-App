@@ -1,4 +1,7 @@
-const mongoose = require('mongoose');
+//const mongoose = require('mongoose');
+
+import mongoose from 'mongoose';
+
 
 // Định nghĩa schema với các trường linh hoạt
 const journeySchema = new mongoose.Schema({
@@ -23,4 +26,4 @@ journeySchema.pre('save', function(next) {
 // Tạo model Journey từ schema
 const Journey = mongoose.model('Journey', journeySchema);
 
-module.exports = { Journey };
+export { Journey };

@@ -1,0 +1,34 @@
+/* Màu sắc cho type */
+[data-property-name="type"] .adminjs_TableCell {
+    font-weight: bold;
+  }
+  
+  [data-property-name="type"] .adminjs_TableCell:contains('Caution') {
+    color: #FFD700; /* vàng */
+  }
+  
+  [data-property-name="type"] .adminjs_TableCell:contains('Warning') {
+    color: #FFA500; /* cam */
+  }
+  
+  [data-property-name="type"] .adminjs_TableCell:contains('Danger') {
+    color: #FF0000; /* đỏ */
+  }
+  
+  /* Màu sắc cho state */
+  [data-property-name="state"] .adminjs_TableCell {
+    font-weight: bold;
+  }
+  
+  [data-property-name="state"] .adminjs_TableCell:contains('pending') {
+    color: #0000FF; /* xanh dương */
+  }
+  
+  [data-property-name="state"] .adminjs_TableCell:contains('accepted') {
+    color: #008000; /* xanh lá cây */
+  }
+  
+  [data-property-name="state"] .adminjs_TableCell:contains('rejected') {
+    color: #FF0000; /* đỏ */
+  }
+  

@@ -1,6 +1,15 @@
+/*
 const express = require("express");
 const { Pothole } = require("../models/pothole");
-const auth = require("../middleware/auth");
+const auth = require("../middleware/auth"); */
+
+
+import express from 'express';
+import multer from 'multer';
+import path from 'path';
+import { Pothole } from '../models/pothole.js';
+import {auth} from '../middleware/auth.js';
+
 const router = express.Router();
 
 //1. Lấy tất cả các ổ gà
@@ -15,73 +24,10 @@ router.get("/all", async (req, res) => {
 });
 
 //2. Thêm ổ gà mới
-
-/**
- * @swagger
- * /api/hole/add:
- *   post:
- *     summary: Thêm một ổ gà mới
- *     tags: [Pothole]
- *     description: Thêm một ổ gà mới vào cơ sở dữ liệu
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             properties:
- *               latitude:
- *                 type: number
- *                 example: 21.0285
- *                 description: Vĩ độ của ổ gà
- *               longitude:
- *                 type: number
- *                 example: 105.8542
- *                 description: Kinh độ của ổ gà
- *               type:
- *                 type: string
- *                 example: "caution"
- *                 description: "Caution, Warning, Danger"
- *               state:
- *                 type: string
- *                 example: "Pending"
- *                 description: "'Accept', 'Pending', 'Reject'"
- *               author:
- *                 type: string
- *                 example: "Người dùng A"
- *                 description: Id của người dùng phát hiện ổ gà
- *               img:
- *                 type: string
- *                 example: "https://example.com/path/to/image.jpg"
- *                 description: "Đường dẫn đến ảnh của ổ gà"
- *     responses:
- *       201:
- *         description: Ổ gà được tạo thành công
- *       400:
- *         description: Thông tin không hợp lệ hoặc ổ gà đã tồn tại
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 error:
- *                   type: string
- *                   example: "Ổ gà đã tồn tại"
- *       500:
- *         description: Lỗi khi lưu dữ liệu
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 error:
- *                   type: string
- *                   example: "Failed to save bump data"
- */
 router.post("/add", auth, async (req, res) => {
   try {
     const author = req.user.id;
-    const { latitude, longitude, type, state, journey_id, img } = req.body;
+    const { latitude, longitude, type, journey_id, img } = req.body;
     
     const existingPothole = await Pothole.findOne({ latitude, longitude });
     if (existingPothole) {
@@ -195,5 +141,52 @@ router.delete("/delete_all", async (req, res) => {
 
 
 
+// Cấu hình multer để lưu ảnh
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    cb(null, 'uploads/'); // Thư mục lưu trữ ảnh
+  },
+  filename: (req, file, cb) => {
+    const extname = path.extname(file.originalname); // Lấy phần mở rộng của file
+    cb(null, `${Date.now()}${extname}`); // Đặt tên file ảnh theo timestamp
+  },
+});
 
-module.exports = router;
+const upload = multer({ storage });
+
+//7. API để cập nhật ảnh cho ổ gà sau khi ổ gà đã tồn tại
+router.put("/update-img/:potholeId", auth, upload.single('img'), async (req, res) => {
+  const { potholeId } = req.params;  // Lấy ID ổ gà từ URL
+  const { type } = req.body;      
+  const img = req.file ? `/uploads/${req.file.filename}` : null; // Đảm bảo rằng ảnh được lưu đúng đường dẫn
+
+  try {
+    // Tìm ổ gà theo ID
+    const pothole = await Pothole.findById(potholeId);
+
+    if (!pothole) {
+      return res.status(404).json({ error: "Không tìm thấy ổ gà" });
+    }
+
+    // Cập nhật type nếu có
+    if (type) {
+      pothole.type = type;
+    }
+
+    // Cập nhật ảnh cho ổ gà
+    if (img) pothole.img = 'http://localhost:3000/api/img' + img;
+    pothole.state = "pending"
+
+    await pothole.save();
+    res.json({ message: "Cập nhật ảnh ổ gà thành công", pothole });
+  } catch (error) {
+    console.error("Error updating pothole image:", error);
+    res.status(500).json({ error: "Lỗi khi cập nhật ảnh ổ gà" });
+  }
+});
+
+
+
+
+
+export default router;

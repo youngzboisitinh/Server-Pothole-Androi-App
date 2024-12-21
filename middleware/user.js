@@ -1,6 +1,11 @@
-const multer = require("multer");
+/*const multer = require("multer");
 const fs = require("fs");
-const path = require("path");
+const path = require("path"); */
+
+import multer from "multer";
+import fs from "fs";
+import path from "path";
+
 
 const uploadDirectory = "uploads/";
 

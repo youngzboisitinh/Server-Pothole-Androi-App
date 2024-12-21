@@ -1,4 +1,4 @@
-const { User } = require("../models/User");
+import { User } from "../models/User.js";
 
 // API cập nhật thông tin người dùng mới
 const updateNewUser = async (req, res) => {
@@ -17,7 +17,7 @@ const updateNewUser = async (req, res) => {
             nickname,
             sex,
             bio,
-            birthday,
+            dateOfBirth: birthday,
             phoneNumber,
             profilePicture,
             isFirstLogin: false,
@@ -33,7 +33,7 @@ const updateNewUser = async (req, res) => {
 
         // Xây dựng đường dẫn URL cho ảnh đại diện
     const profilePictureUrl = user.profilePicture
-    ? `${"http://10.0.102.99:3000"}/uploads/${user.profilePicture}`  // Giả sử BASE_URL chứa URL cơ sở của server
+    ? `${"http://192.168.1.44:3000"}/uploads/${user.profilePicture}`  // Giả sử BASE_URL chứa URL cơ sở của server
     : null;
 
 
@@ -54,12 +54,12 @@ const updateUser = async (req, res) => {
     const updateData = {}; // Đối tượng chứa thông tin cần cập nhật
 
     // Kiểm tra và thêm các trường từ request body nếu có
-    if (req.body.name) updateData.name = req.body.name;
+    if (req.body.name) updateData.username = req.body.name;
     if (req.body.email) updateData.email = req.body.email;
     if (req.body.phoneNumber) updateData.phoneNumber = req.body.phoneNumber;
     if (req.body.bio) updateData.bio = req.body.bio;
     if (req.body.sex) updateData.sex = req.body.sex;
-    if (req.body.birthday) updateData.birthday = req.body.birthday;
+    if (req.body.birthday) updateData.dateOfBirth = req.body.birthday;
     if (req.body.role) updateData.role = req.body.role;
     if (req.body.isVerified !== undefined) updateData.isVerified = req.body.isVerified;
     if (req.body.score !== undefined) updateData.score = req.body.score;
@@ -103,7 +103,7 @@ const getUserInfo = async (req, res) => {
 
     res.status(200).json({
       id: user.id,
-      name: user.name,
+      username: user.username,
       email: user.email,
       profilePicture: user.profilePicture,
       isVerified: user.isVerified,
@@ -112,7 +112,7 @@ const getUserInfo = async (req, res) => {
       updatedAt: user.updatedAt,
       sex: user.sex,
       bio: user.bio,
-      birthday: user.birthday,
+      dateOfBirth: user.dateOfBirth,
       phoneNumber: user.phoneNumber,
       score: user.score,
       isFirstLogin: user.isFirstLogin
@@ -162,7 +162,7 @@ const getUserInfoByUsername = async (req, res) => {
         updatedAt: user.updatedAt,
         sex: user.sex,
         bio: user.bio,
-        birthday: user.birthday,
+        dateOfBirth: user.dateOfBirth,
         phoneNumber: user.phoneNumber,
         score: user.score,
         isFirstLogin: user.isFirstLogin
@@ -176,4 +176,7 @@ const getUserInfoByUsername = async (req, res) => {
 
 
 
-module.exports = { updateUser, updateNewUser, getUserInfo, getUserInfoByUsername, getAllUsers};
+//module.exports = { updateUser, updateNewUser, getUserInfo, getUserInfoByUsername, getAllUsers};
+
+export { updateUser, updateNewUser, getUserInfo, getUserInfoByUsername, getAllUsers };
+

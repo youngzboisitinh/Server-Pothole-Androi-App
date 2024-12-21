@@ -1,28 +1,55 @@
-const express = require('express');
+/*const express = require('express');
 const multer = require('multer');
 const path = require('path');
 const userController = require('../controllers/userController');
 const fs = require('fs');
 const auth = require('../middleware/auth');
+const fsPromises = require('fs').promises; // Sử dụng promises để dễ dàng xử lý bất đồng bộ
 
+*/
+
+import express from 'express';
+import multer from 'multer';
+import path from 'path';
+import { updateUser, updateNewUser, getUserInfo, getUserInfoByUsername, getAllUsers } from '../controllers/userController.js'; 
+import fs from 'fs';
+import {auth} from '../middleware/auth.js';  // Thêm .js nếu cần
+import fsPromises from 'fs/promises';  // Sử dụng promises để dễ dàng xử lý bất đồng bộ
+import { User } from '../models/User.js';
 
 const router = express.Router();
 
 // API để lấy ảnh đại diện của người dùng
-router.get('/profile-picture/:userId', (req, res) => {
-    const userId = req.params.userId;  // Lấy userId từ tham số URL
-    const profilePicturePath = path.join(__dirname, '..', 'uploads', `${userId}.jpg`);  // Đường dẫn tới ảnh trong thư mục uploads
 
-    // Kiểm tra xem file ảnh có tồn tại hay không
-    fs.exists(profilePicturePath, (exists) => {
-        if (exists) {
-            // Nếu ảnh tồn tại, trả về ảnh
+
+router.get('/profile-picture/:userId', async (req, res) => {
+    const userId = req.params.userId;  // Lấy userId từ tham số URL
+    const __dirname = import.meta.dirname;
+    let  uploadDir = path.resolve(__dirname, '..', 'uploads');
+
+
+
+    console.log("Day la uploadDir " + uploadDir);
+
+    try {
+        // Đọc tất cả các tệp trong thư mục uploads
+        const files = await fsPromises.readdir(uploadDir);
+        
+        // Tìm tệp có tên bắt đầu với userId (và bất kỳ đuôi file nào)
+        const matchingFile = files.find(file => file.startsWith(userId) && file.includes('.'));
+        
+        if (matchingFile) {
+            // Nếu tìm thấy tệp phù hợp, trả về tệp ảnh
+            const profilePicturePath = path.join(uploadDir, matchingFile);
             res.sendFile(profilePicturePath);
         } else {
-            // Nếu ảnh không tồn tại, trả về lỗi 404
+            // Nếu không tìm thấy ảnh, trả về lỗi 404
             res.status(404).send('Profile picture not found');
         }
-    });
+    } catch (error) {
+        console.error(error); // In lỗi ra console
+        res.status(500).send('Server error');
+    }
 });
 
 
@@ -68,7 +95,7 @@ const upload = multer({
 });
 
 //1. Cập nhật thông tin cho new user
-router.post('/new_user/update', auth, upload.single('profilePicture'), userController.updateNewUser);
+router.post('/new_user/update', auth, upload.single('profilePicture'), updateNewUser);
 
 /**
  * @swagger
@@ -154,15 +181,71 @@ router.post('/new_user/update', auth, upload.single('profilePicture'), userContr
  *           description: "Lỗi server"
  */
 
-router.put('/update', auth, upload.single('profilePicture'), userController.updateUser);
+router.put('/update', auth, upload.single('profilePicture'), updateUser);
 
 
 //4. Lấy thông tin user hiện tại
-router.get('/info', auth, userController.getUserInfo);
+router.get('/info', auth, getUserInfo);
 //5. Lấy thông tin user theo username
-router.get('/info/:username', auth, userController.getUserInfoByUsername);
+router.get('/info/:username', auth, getUserInfoByUsername);
 //6. Lấy tất cả người dùng
-router.get('/all_users', auth, userController.getAllUsers );
+router.get('/all_users', auth, getAllUsers );
+
+router.post('/update-score', auth, async (req, res) => {
+    let { score } = req.body;
+
+    const userId = req.user.id;
+
+    // Kiểm tra dữ liệu đầu vào
+    if (!userId || score === undefined) {
+        return res.status(400).send('Thiếu thông tin userId hoặc score');
+    }
+
+    // Chuyển score sang kiểu số nguyên
+    score = parseInt(score, 10);
+
+    if (isNaN(score)) {
+        return res.status(400).send('Giá trị score không hợp lệ (phải là số nguyên)');
+    }
+
+    try {
+        // Tìm người dùng trong MongoDB
+        const user = await User.findById(userId).select('-password -verificationCode'); // Không trả về password và verificationCode
+
+        if (!user) {
+            return res.status(404).send('Không tìm thấy người dùng');
+        }
+
+        // Cập nhật điểm của người dùng
+        user.score = (user.score || 0) + score; // Đảm bảo user.score luôn là số
+        await user.save();
+
+        res.status(200).send('Cập nhật điểm thành công');
+    } catch (error) {
+        console.error(error);
+        res.status(500).send('Lỗi server');
+    }
+});
 
 
-module.exports = router;
+// API lấy top 3 user cao điểm nhất
+router.get('/top-scores', async (req, res) => {
+    try {
+        // Tìm top 3 người dùng có điểm cao nhất, chỉ lấy username và score
+        const topUsers = await User.find()
+            .sort({ score: -1 }) // Sắp xếp theo score giảm dần
+            .limit(3)            // Lấy 3 người đầu tiên
+            .select('username score profilePicture _id'); // Chỉ lấy username và score, không lấy _id
+
+        res.status(200).json(topUsers); // Trả về danh sách top 3
+    } catch (error) {
+        console.error('Lỗi khi lấy top scores:', error);
+        res.status(500).send('Lỗi server');
+    }
+});
+
+
+
+
+
+export default router;

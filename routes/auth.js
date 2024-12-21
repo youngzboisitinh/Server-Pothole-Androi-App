@@ -1,12 +1,31 @@
+/*
 const express = require("express");
+const multer = require("multer");
+const path = require("path");
 const router = express.Router();
 const { User } = require("../models/User");
 const bcrypt = require("bcryptjs");
 const nodemailer = require("nodemailer");
 const { OAuth2Client } = require("google-auth-library");
-const jwt = require("jsonwebtoken");
+const jwt = require("jsonwebtoken"); */
+
+
+import express from 'express';
+const router = express.Router(); // Khởi tạo router
+import multer from 'multer';
+import path from 'path';
+import { User } from '../models/User.js'; // Giữ nguyên, vì đã sử dụng export trong User model
+import bcrypt from 'bcryptjs';
+import nodemailer from 'nodemailer';
+import { OAuth2Client } from 'google-auth-library';
+import jwt from 'jsonwebtoken';
+
+
+
 
 const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
+
+
 // API Đăng ký
 router.post("/signup", async (req, res) => {
   const { username, email, password } = req.body;
@@ -91,33 +110,43 @@ router.get("/check-verification-status", async (req, res) => {
   }
 });
 
+
 // Đăng nhập và tạo JWT token
 router.post("/login", async (req, res) => {
   const { username, password } = req.body;
   try {
     const user = await User.findOne({ username });
-    if (!user)
-      return res
-        .status(400)
-        .json({ message: "Tên đăng nhập hoặc mật khẩu không đúng" });
+
+    if (!user) {
+      return res.status(400).json({ message: "Tên đăng nhập hoặc mật khẩu không đúng" });
+    }
+
     const isMatch = await user.isValidPassword(password);
-    if (!isMatch)
-      return res
-        .status(400)
-        .json({ message: "Tên đăng nhập hoặc mật khẩu không đúng" });
+    if (!isMatch) {
+      return res.status(400).json({ message: "Tên đăng nhập hoặc mật khẩu không đúng" });
+    }
 
-
-    const isFirstLogin = user.isFirstLogin;
+    // Cập nhật trạng thái người dùng thành 'online'
+    user.status = "online";
+    await user.save();
 
     const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, {
       expiresIn: "1h",
     });
-    res.json({ token, isFirstLogin, message: "Đăng nhập thành công!" });
-      } catch (error) {
+
+    res.json({
+      token,
+      message: "Đăng nhập thành công!",
+      email: user.email, // Gửi email của người dùng,
+      isFirstLogin: user.isFirstLogin,
+      userId: user._id
+    });
+  } catch (error) {
     console.error(error); // In lỗi ra console
     res.status(500).json({ message: "Lỗi server." });
   }
 });
+
 
 // Tạo transporter một lần
 const createTransporter = () => {
@@ -201,10 +230,32 @@ router.post("/reset-password", async (req, res) => {
 
     res.json({ message: "Mật khẩu đã được thay đổi." });
   } catch (error) {
-    console.error(error); // In lỗi ra console
+    console.error(error); 
     res.status(500).json({ message: "Lỗi, vui lòng thử lại." });
   }
 });
+
+router.post("/logout", async (req, res) => {
+  const { userId } = req.body;
+
+  try {
+    const user = await User.findById(userId);
+
+    if (!user) {
+      return res.status(404).json({ message: "Người dùng không tồn tại" });
+    }
+
+    
+    user.status = "offline";
+    await user.save();
+
+    res.json({ message: "Đăng xuất thành công", status: user.status });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Lỗi đăng xuất, vui lòng thử lại." });
+  }
+});
+
 
 //Đăng nhập Google
 // router.post('/google-login', async (req, res) => {
@@ -385,4 +436,4 @@ router.post("/reset-password", async (req, res) => {
  */
 
 
-module.exports = router;
+export default router;

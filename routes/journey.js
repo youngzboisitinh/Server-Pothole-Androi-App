@@ -1,6 +1,12 @@
+/*
 const express = require('express');
 const { Journey } = require('../models/journey');
 const auth = require('../middleware/auth');
+*/
+
+import express from 'express';
+import { Journey } from '../models/journey.js';  // Chú ý thêm .js
+import {auth} from '../middleware/auth.js';  // Chú ý thêm .js
 const router = express.Router();
 
 //1. Thêm journey mới
@@ -93,4 +99,4 @@ router.delete("/delete_all", auth, async (req, res) => {
 
 
 
-module.exports = router;
+export default router;
