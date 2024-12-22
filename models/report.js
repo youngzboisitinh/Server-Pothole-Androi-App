@@ -2,7 +2,7 @@ import mongoose from 'mongoose';
 
 // Định nghĩa schema cho report
 const reportSchema = new mongoose.Schema({
-  userId: { type: String, required: false }, // ID của người dùng, bắt buộc
+  author: { type: String, required: false }, // ID của người dùng, bắt buộc
   potholeId: { type: String, required: false }, // ID của ổ gà, bắt buộc
   reason: { type: String, required: false }, // Lý do báo cáo, bắt buộc
   state: { type: String, required: false, enum: ['pending', 'accepted', 'rejected'], default: 'pending' }, // Trạng thái báo cáo

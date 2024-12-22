@@ -1,5 +1,5 @@
 import express from "express";
-import Notification from "../models/notification.js"; // Đường dẫn đến model Notification của bạn
+import {Notification} from "../models/notification.js"; // Đường dẫn đến model Notification của bạn
 
 
 const router = express.Router();
@@ -25,19 +25,19 @@ router.get("/notifications", (req, res) => {
 // Endpoint để tạo thông báo và gửi SSE cho các client
 router.post("/", async (req, res) => {
   try {
-    const { userId, potholeId, status, reason } = req.body;
+    const { owner, potholeId, status, reason } = req.body;
 
     // Kiểm tra dữ liệu đầu vào
-    if (!userId || !potholeId || !status) {
-      return res.status(400).json({ error: "userId, potholeId, and status are required." });
+    if (!owner || !potholeId || !status) {
+      return res.status(400).json({ error: "owner, potholeId, and status are required." });
     }
 
     // Tạo thông báo mới
     const newNotification = new Notification({
-      userId,
+      owner,
       potholeId,
       status,
-      reason: status === "rejected" ? reason : null,
+      reason
     });
 
     // Lưu thông báo vào cơ sở dữ liệu
@@ -72,11 +72,11 @@ router.get("/", async (req, res) => {
 });
 
 // Endpoint để lấy thông báo theo userId
-router.get("/:userId", async (req, res) => {
+router.get("/:owner", async (req, res) => {
   try {
-    const { userId } = req.params;
+    const { owner } = req.params;
 
-    const notifications = await Notification.find({ userId });
+    const notifications = await Notification.find({ owner });
     if (notifications.length === 0) {
       return res.status(404).json({ error: "No notifications found for this user." });
     }

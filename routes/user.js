@@ -19,11 +19,156 @@ import { User } from '../models/User.js';
 
 const router = express.Router();
 
+// Kiểm tra và tạo thư mục nếu chưa tồn tại
+const uploadDirectory = 'uploads/';
+if (!fs.existsSync(uploadDirectory)) {
+  fs.mkdirSync(uploadDirectory);
+}
+
+
+
+
 // API để lấy ảnh đại diện của người dùng
 
+// Lấy thông tin người dùng
+router.get("/get", async (req, res) => {
+  try {
+    const { email } = req.query;
 
-router.get('/profile-picture/:userId', async (req, res) => {
-    const userId = req.params.userId;  // Lấy userId từ tham số URL
+    if (!email) {
+      return res.status(400).json({ message: "Email is required." });
+    }
+
+    const user = await User.findOne({ email });
+    if (!user) {
+      return res.status(404).json({ message: "User not found." });
+    }
+
+    const imagePath = user.profilePicture
+      ? `${req.protocol}://${req.get("host")}/${user.profilePicture}`
+      : null;
+
+    res.status(200).json({
+      name: user.nickname,
+      birthday: user.dateOfBirth,
+      address: user.address,
+      bio: user.bio,
+      profilePicture: imagePath,
+      since: user.since,
+      sex: user.sex,
+      phone: user.phoneNumber,
+    });
+  } catch (error) {
+    console.error("Error fetching user profile:", error.message);
+    res.status(500).json({ message: "Server error. Please try again later." });
+  }
+});
+
+
+
+const storage = multer.diskStorage({
+    destination: (req, file, cb) => {
+        cb(null, uploadDirectory); // Thư mục lưu file
+    },
+    filename: async (req, file, cb) => {
+        // Lấy email từ query, body hoặc header
+        const email = req.query.email || req.body.email || req.headers['email'];
+
+        if (!email) {
+            return cb(new Error('Email not found in request'), null);
+        }
+
+        try {
+            // Tìm người dùng bằng phương thức findOne trong MongoDB
+            const user = await User.findOne({ email: email });
+
+            if (!user) {
+                return cb(new Error('User not found'), null);
+            }
+
+            const username = user.username;
+
+            if (!username) {
+                return cb(new Error('Username not found for the given email'), null);
+            }
+
+            // Tạo tên file với định dạng: <username>.extension
+            const fileName = `${username}${path.extname(file.originalname)}`;
+            cb(null, fileName);
+        } catch (err) {
+            cb(new Error('Error fetching user data: ' + err.message), null);
+        }
+    },
+});
+
+const upload = multer({
+    storage: storage,
+    limits: { fileSize: 5 * 1024 * 1024 }, // Giới hạn kích thước file (5MB)
+    fileFilter: (req, file, cb) => {
+        const fileTypes = /jpeg|jpg|png/; // Định dạng file hợp lệ
+        const extname = fileTypes.test(path.extname(file.originalname).toLowerCase());
+        const mimetype = fileTypes.test(file.mimetype);
+    
+        if (extname && mimetype) {
+            cb(null, true);
+        } else {
+            cb(new Error('Only images are allowed (JPEG, JPG, PNG)'), false);
+        }
+    },
+});
+
+
+// Cập nhật thông tin người dùng
+router.put("/update", upload.single("image"), async (req, res) => {
+  try {
+    const { email } = req.query;
+    const { username, name, address, sex, bio, birthday, phone, since } = req.body;
+
+    // Tìm người dùng qua email
+    let user = await User.findOne({ email });
+    if (!user) {
+      user = await User.findOne({ username });  
+    }
+    if (!user) return res.status(404).json({ message: "Người dùng không tồn tại." });
+
+    // Tạo đối tượng cập nhật
+    const updates = {};
+    if (name) updates.nickname = name;
+    if (address) updates.address = address;
+    if (phone) updates.phoneNumber = phone;
+    if (sex) updates.sex = sex;
+    if (bio) updates.bio = bio;
+    if (birthday) updates.dateOfBirth = birthday;
+    if (since) updates.since = since;
+
+    // Xử lý ảnh (nếu có)
+    if (req.file) {
+      updates.profilePicture = req.file.path;
+    }
+
+    // Gán giá trị mới cho user (thêm trường nếu chưa tồn tại)
+    Object.keys(updates).forEach((key) => {
+      user[key] = updates[key];
+    });
+
+    // Lưu người dùng
+    await user.save();
+
+    // Phản hồi thành công
+    res.status(200).json({
+      message: "Cập nhật thông tin người dùng thành công!",
+      updatedFields: updates,
+      user,
+    });
+  } catch (error) {
+    console.error("Error updating user info:", error.message);
+    res.status(500).json({ message: "Lỗi server. Vui lòng thử lại sau." });
+  }
+});
+
+
+router.get('/profile-picture/:username', async (req, res) => {
+    const username = req.params.username;  // Lấy userId từ tham số URL
     const __dirname = import.meta.dirname;
     let  uploadDir = path.resolve(__dirname, '..', 'uploads');
 
@@ -36,7 +181,7 @@ router.get('/profile-picture/:userId', async (req, res) => {
         const files = await fsPromises.readdir(uploadDir);
         
         // Tìm tệp có tên bắt đầu với userId (và bất kỳ đuôi file nào)
-        const matchingFile = files.find(file => file.startsWith(userId) && file.includes('.'));
+        const matchingFile = files.find(file => file.startsWith(username) && file.includes('.'));
         
         if (matchingFile) {
             // Nếu tìm thấy tệp phù hợp, trả về tệp ảnh
@@ -53,133 +198,11 @@ router.get('/profile-picture/:userId', async (req, res) => {
 });
 
 
-// Kiểm tra và tạo thư mục nếu chưa tồn tại
-const uploadDirectory = 'uploads/';
-if (!fs.existsSync(uploadDirectory)) {
-  fs.mkdirSync(uploadDirectory);
-}
 
-// Thiết lập Multer để upload file
-const storage = multer.diskStorage({
-    destination: (req, file, cb) => {
-        cb(null, uploadDirectory); // Thư mục lưu file
-    },
-    filename: (req, file, cb) => {
-        // Lấy id của user từ middleware auth (thông thường được thêm vào req.user)
-        const userId = req.user.id; // 'req.user' được set trong middleware auth
-        if (!userId) {
-            return cb(new Error('User ID not found in request'), null);
-        }
-
-        // Tạo tên file với định dạng: <userId>.extension
-        const fileName = `${userId}${path.extname(file.originalname)}`;
-        cb(null, fileName);
-    },
-});
-
-
-const upload = multer({
-    storage: storage,
-    limits: { fileSize: 5 * 1024 * 1024 }, // Giới hạn kích thước file (5MB)
-    fileFilter: (req, file, cb) => {
-        const fileTypes = /jpeg|jpg|png/;
-        const extname = fileTypes.test(path.extname(file.originalname).toLowerCase());
-        const mimetype = fileTypes.test(file.mimetype);
-
-        if (extname && mimetype) {
-            cb(null, true);
-        } else {
-            cb(new Error('Only images are allowed (JPEG, JPG, PNG)'));
-        }
-    },
-});
 
 //1. Cập nhật thông tin cho new user
 router.post('/new_user/update', auth, upload.single('profilePicture'), updateNewUser);
 
-/**
- * @swagger
- * paths:
- *   /api/user/info:
- *     get:
- *       summary: "Lấy thông tin người dùng"
- *       tags: [User]
- *       description: "API để lấy thông tin chi tiết của người dùng hiện tại"
- *       security:
- *         - bearerAuth: []  # Xác thực bằng token
- *       responses:
- *         200:
- *           description: "Thông tin người dùng"
- *           content:
- *             application/json:
- *               schema:
- *                 type: object
- *                 properties:
- *                   id:
- *                     type: string
- *                     example: "12345"
- *                     description: "ID người dùng"
- *                   email:
- *                     type: string
- *                     example: "user@example.com"
- *                     description: "Email của người dùng"
- *                   name:
- *                     type: string
- *                     example: "Nguyễn Văn A"
- *                     description: "Tên người dùng"
- *                   profilePicture:
- *                     type: string
- *                     example: "uploads/1622551267890-image.jpg"
- *                     description: "URL ảnh đại diện của người dùng"
- *                   isVerified:
- *                     type: boolean
- *                     example: true
- *                     description: "Trạng thái xác minh email của người dùng"
- *                   role:
- *                     type: string
- *                     example: "admin"
- *                     description: "Vai trò của người dùng trong hệ thống"
- *                   createdAt:
- *                     type: string
- *                     format: date-time
- *                     example: "2023-01-01T12:34:56Z"
- *                     description: "Thời gian người dùng đăng ký tài khoản"
- *                   updatedAt:
- *                     type: string
- *                     format: date-time
- *                     example: "2023-01-01T12:34:56Z"
- *                     description: "Thời gian tài khoản được cập nhật lần cuối"
- *                   sex:
- *                     type: string
- *                     example: "Male"
- *                     description: "Giới tính của người dùng"
- *                   bio:
- *                     type: string
- *                     example: "Đây là tiểu sử của người dùng"
- *                     description: "Tiểu sử ngắn gọn của người dùng"
- *                   birthday:
- *                     type: string
- *                     example: "1990-01-01"
- *                     description: "Ngày sinh của người dùng"
- *                   phoneNumber:
- *                     type: string
- *                     example: "0987654321"
- *                     description: "Số điện thoại của người dùng"
- *                   score:
- *                     type: number
- *                     example: 100
- *                     description: "Điểm của người dùng trong hệ thống"
- *                   isFirstLogin:
- *                     type: boolean
- *                     example: true
- *                     description: "Trạng thái lần đăng nhập đầu tiên của người dùng"
- *         401:
- *           description: "Không có quyền truy cập, vui lòng đăng nhập lại"
- *         404:
- *           description: "Không tìm thấy người dùng"
- *         500:
- *           description: "Lỗi server"
- */
 
 router.put('/update', auth, upload.single('profilePicture'), updateUser);
 

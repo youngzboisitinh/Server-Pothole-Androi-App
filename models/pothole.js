@@ -10,6 +10,11 @@ const potholeSchema = new mongoose.Schema({
   latitude: { type: Number, required: false, default: null },  // Không bắt buộc
   longitude: { type: Number, required: false, default: null }, // Không bắt buộc
   type: { type: String, required: false, default: null },      // Không bắt buộc
+  date: { type: String, required: false, default: null },  
+  author: { type: String, required: false, default: null },    // Không bắt buộc
+
+
+
   state: { 
     type: String, 
     enum: ['pending', 'accepted', 'rejected'], 
@@ -17,11 +22,9 @@ const potholeSchema = new mongoose.Schema({
     default: 'pending', 
   },
   img: { type: String, required: false, default: null },       // Không bắt buộc
-  journey_id: { type: String, required: false, default: null }, // Không bắt buộc
-  author: { type: String, required: false, default: null },    // Không bắt buộc
+  journey_id: { type: String, required: false, default: null }, // Không bắt buộc  
   created_at: { type: Date, default: Date.now }, 
   updated_at: { type: Date, default: Date.now },
-  date: { type: String, required: false, default: null },  
   rejection_reason: { type: String, required: false, default: null }    // Không bắt buộc (từ nhánh kia)
 });
 
@@ -31,24 +34,6 @@ potholeSchema.pre('save', function (next) {
   next();
 });
 
-// Hàm gửi thông báo (ví dụ gửi qua API)
-const sendNotification = async (pothole) => {
-  try {
-    await fetch('http://localhost:3000/api/notification', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        potholeId: pothole._id,
-        status: pothole.state,
-        reason: pothole.rejection_reason,
-        userId: pothole.author,
-      }),
-    });
-    console.log('Thông báo gửi thành công');
-  } catch (error) {
-    console.error('Gửi thông báo lỗi:', error);
-  }
-};
 
 
 // Đăng ký sự kiện potholeUpdated để phát thông báo khi có thay đổi
@@ -68,6 +53,6 @@ potholeSchema.post('save', function (doc) {
 });
 
 // Tạo model Pothole từ schema
-const Pothole = mongoose.model('Pothole', potholeSchema, 'new_potholes');
+const Pothole = mongoose.model('Pothole', potholeSchema);
 
 export { Pothole, potholeEventEmitter };

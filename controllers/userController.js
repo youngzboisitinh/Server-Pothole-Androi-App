@@ -4,10 +4,7 @@ import { User } from "../models/User.js";
 const updateNewUser = async (req, res) => {
     const { nickname, sex, bio, birthday, phoneNumber } = req.body;
 
-    // Check if required fields are provided
-    if (!nickname || !sex || !bio || !birthday || !phoneNumber) {
-        return res.status(400).json({ error: 'All fields are required' });
-    }
+    
 
     // If a file (profile picture) was uploaded, include it in the update
     const profilePicture = req.file ? req.file.filename : null;
@@ -31,16 +28,12 @@ const updateNewUser = async (req, res) => {
             return res.status(404).json({ error: 'User not found' });
         }
 
-        // Xây dựng đường dẫn URL cho ảnh đại diện
-    const profilePictureUrl = user.profilePicture
-    ? `${"http://192.168.1.44:3000"}/uploads/${user.profilePicture}`  // Giả sử BASE_URL chứa URL cơ sở của server
-    : null;
+   
 
 
         // Return success response
         res.status(200).json({            
               ...user.toObject(),  // Chuyển đổi Mongoose document thành plain object
-              profilePicture: profilePictureUrl  // Thay thế trường profilePicture bằng URL
         });
     } catch (err) {
         console.error(err);  // Log error for debugging
@@ -60,6 +53,7 @@ const updateUser = async (req, res) => {
     if (req.body.bio) updateData.bio = req.body.bio;
     if (req.body.sex) updateData.sex = req.body.sex;
     if (req.body.birthday) updateData.dateOfBirth = req.body.birthday;
+    if (req.body.since) updateData.since = req.body.since;
     if (req.body.role) updateData.role = req.body.role;
     if (req.body.isVerified !== undefined) updateData.isVerified = req.body.isVerified;
     if (req.body.score !== undefined) updateData.score = req.body.score;

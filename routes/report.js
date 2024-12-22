@@ -8,17 +8,17 @@ const router = express.Router();
  * URL: POST /api/reports/delete-request
  */
 router.post('/delete-request', async (req, res) => {
-  const { userId, potholeId, reason } = req.body;
+  const { author, potholeId, reason } = req.body;
 
   // Kiểm tra dữ liệu đầu vào
-  if (!userId || !potholeId || !reason) {
-    return res.status(400).json({ message: 'Missing required fields: userId, potholeId, and reason are required.' });
+  if (!author || !potholeId || !reason) {
+    return res.status(400).json({ message: 'Missing required fields: author, potholeId, and reason are required.' });
   }
 
   try {
     // Tạo mới một báo cáo yêu cầu xóa pothole
     const newReport = new Report({
-      userId,
+      author,
       potholeId,
       reason,
       state: 'pending', // Báo cáo mặc định ở trạng thái "pending"

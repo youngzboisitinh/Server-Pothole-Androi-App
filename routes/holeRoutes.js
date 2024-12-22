@@ -13,7 +13,7 @@ import {auth} from '../middleware/auth.js';
 const router = express.Router();
 
 //1. Lấy tất cả các ổ gà
-router.get("/all", async (req, res) => {
+router.get("/add", async (req, res) => {
   try {
     const potholes = await Pothole.find(); //trỏ tới new_potholes
     res.json(potholes);
@@ -26,40 +26,37 @@ router.get("/all", async (req, res) => {
 //2. Thêm ổ gà mới
 router.post("/add", auth, async (req, res) => {
   try {
-    const author = req.user.id;
-    const { latitude, longitude, type, journey_id, img } = req.body;
-    
-    const existingPothole = await Pothole.findOne({ latitude, longitude });
-    if (existingPothole) {
-      return res.status(400).json({ error: "Ổ gà đã tồn tại" });
+    const { latitude, longitude, type, author, date } = req.body;
+    const newHole = new Pothole({ latitude, longitude, type, author, date });
+    const hole = Pothole.find();
+    console.log("" + newHole);
+    if (
+      newHole.latitude == hole.latitude &&
+      newHole.longitude == hole.longitude
+    ) {
+      res.status(400).send();
     }
-
-    const newPothole = new Pothole({
-      latitude,
-      longitude,
-      type,
-      state, 
-      journey_id,
-      author, 
-      img, 
-    });
-
-    await newPothole.save();
-    res.status(201).json(newPothole); 
-
+    await newHole.save();
+    res.status(201).send();
   } catch (error) {
     console.error("Error saving bump data:", error);
     res.status(500).json({ error: "Failed to save bump data" });
   }
 });
 
-// 3. Lấy ổ gà theo id người dùng (author)
-router.get("/user/:authorId", async (req, res) => {
-  const { authorId } = req.params;
+
+
+
+
+// No use
+
+// 3. Lấy ổ gà theo username người dùng (author)
+router.get("/user/:username", async (req, res) => {
+  const { username } = req.params;
 
   try {
     // Find potholes by user authorId (author is assumed to be the user ID)
-    const userPotholes = await Pothole.find({ author: authorId });
+    const userPotholes = await Pothole.find({ author: username });
 
     if (userPotholes.length === 0) {
       return res.status(404).json({ error: "Không tìm thấy ổ gà nào của người dùng này" });
@@ -105,13 +102,12 @@ router.put("/update/:userId/:potholeId", async (req, res) => {
 });
 
 //5. Lấy ổ gà của người dùng hiện tại (dựa trên token)
-router.get("/current_user", auth, async (req, res) => {
-  const id = req.user.id;
+router.get("/:username", async (req, res) => {
+  const username = req.params.username;
 
-  console.log("day la token trong pothole", id)
 
   try {
-    const userPotholes = await Pothole.find({ author: id });
+    const userPotholes = await Pothole.find({ author: username });
 
     if (userPotholes.length === 0) {
       return res.status(404).json({ error: "Không tìm thấy ổ gà nào của người dùng này" });

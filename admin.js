@@ -13,6 +13,7 @@ import { Pothole } from "./models/pothole.js";
 import { User } from "./models/User.js"; 
 import { Journey } from "./models/journey.js";
 import { Report } from "./models/report.js";
+import { Notification } from "./models/notification.js";
 import CustomImageComponent from "./components/CustomImageComponent.js";
 import typeColorComponent from "./type-color-component.js";
 
@@ -82,23 +83,40 @@ const adminJs = new AdminJS({
               label: 'Accepted',
               icon: 'Check',
               handler: async (request, response, context) => {
-                const { record } = context;
+                let report = context.record;
+                
+                  let username = report.param('author');                  
+                  let id = report.param('_id');
+
+          
+                // Cập nhật trạng thái thành "accepted"
+                await report.update({ state: 'accepted' });
+
+                try {
+                  await fetch('http://localhost:3000/api/notification', {
+                    method: 'POST',
+                    headers: {
+                      'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                      potholeId: id,
+                      status: 'accepted',
+                      reason: "Thank you for letting us know it.",
+                      owner: username,
+                    }),
+                  });
+                } catch (error) {
+                  console.error('API Error:', error.response ? error.response.data : error.message);
+                  // Xử lý lỗi trong khi gửi thông báo nhưng không dừng quá trình
+                }               
   
-                if (!record) {
-                  throw new Error('Report not found');
-                }
-  
-                const { potholeId } = record.params;
   
                 try {
                   // Xóa pothole tương ứng trong bảng Pothole
-                  const deletedPothole = await Pothole.findByIdAndDelete(potholeId);
+                  const deletedPothole = await Pothole.findByIdAndDelete(id);
                   if (!deletedPothole) {
                     throw new Error('Pothole not found');
-                  }
-  
-                  // Cập nhật trạng thái report thành "approved"
-                  await record.update({ state: 'accepted' });
+                  }                 
 
                   const { currentAdmin} = context;
   
@@ -124,19 +142,38 @@ const adminJs = new AdminJS({
               label: 'Reject',
               icon: 'Close',
               handler: async (request, response, context) => {
-                const { record } = context;
+                let report = context.record;
+                
+                  let username = report.param('author');                  
+                  let id = report.param('_id');
+
+          
+                // Cập nhật trạng thái thành "accepted"
+                await report.update({ state: 'accepted' });
+
+                try {
+                  await fetch('http://localhost:3000/api/notification', {
+                    method: 'POST',
+                    headers: {
+                      'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                      potholeId: id,
+                      status: 'rejected',
+                      reason: "We need to reject this Pothole report.",
+                      owner: username,
+                    }),
+                  });
+                } catch (error) {
+                  console.error('API Error:', error.response ? error.response.data : error.message);
+                  // Xử lý lỗi trong khi gửi thông báo nhưng không dừng quá trình
+                }               
   
-                if (!record) {
-                  throw new Error('Report not found');
-                }
-
-                const { currentAdmin} = context;
-
   
                 try {
-                  // Cập nhật trạng thái report thành "rejected"
-                  await record.update({ state: 'rejected' });
+                                 
 
+                  const { currentAdmin} = context;
   
                   return {
                     record: record.toJSON(currentAdmin),
@@ -168,7 +205,8 @@ const adminJs = new AdminJS({
               components: {
                 list: typeColorComponent,
               }
-            },
+            },            
+            
             state: {
               isVisible: true,
               availableValues: [
@@ -180,7 +218,7 @@ const adminJs = new AdminJS({
               components: {
                 list: typeColorComponent,
               }
-            },
+            }, 
             img: {
                 type: 'image',
                 isArray: false,
@@ -204,8 +242,9 @@ const adminJs = new AdminJS({
                 type: 'string', // Kiểu dữ liệu chuỗi
                 isVisible: { list: false, show: true, edit: true }, // Hiển thị trường khi admin chỉnh sửa
                 isRequired: false, // Đảm bảo trường này là bắt buộc khi từ chối
-              },
+              }, 
           },
+          
           actions: {
             accept: {
               actionType: 'record',
@@ -213,19 +252,35 @@ const adminJs = new AdminJS({
               component: false,
               handler: async (request, response, context) => {
                 let pothole = context.record;
+                
+                  let username = pothole.param('author');                  
+                  let id = pothole.param('_id');
+
           
                 // Cập nhật trạng thái thành "accepted"
                 await pothole.update({ state: 'accepted' });
+
+                try {
+                  await fetch('http://localhost:3000/api/notification', {
+                    method: 'POST',
+                    headers: {
+                      'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                      potholeId: id,
+                      status: 'accepted',
+                      reason: "Thank you for uploading this picture.",
+                      owner: username,
+                    }),
+                  });
+                } catch (error) {
+                  console.error('API Error:', error.response ? error.response.data : error.message);
+                  // Xử lý lỗi trong khi gửi thông báo nhưng không dừng quá trình
+                } 
+
+
           
-                // Lấy thông tin User liên quan đến pothole
-                const userId = pothole.author;
-                const user = await User.findById(userId);
-          
-                if (user) {
-                  // Cộng thêm 10 điểm cho User
-                  user.score = (user.score || 0) + 10;
-                  await user.save();
-                }
+                
           
                 // Đảm bảo trả về đối tượng theo cấu trúc RecordJSON
                 const { record, currentAdmin } = context
@@ -242,13 +297,14 @@ const adminJs = new AdminJS({
                 icon: 'Cancel',
                 handler: async (request, response, context) => {
                   let pothole = context.record;
-                  let userId = pothole.param('author');
+                  let username = pothole.param('author');
                   let rejectionReason = pothole.param('rejection_reason');
                   let id = pothole.param('_id');
 
-                  console.log("userid" + userId);
+                  console.log("userid" + username);
                   console.log("potholeid" + id);
                   console.log("rejection_reason" + rejectionReason);
+                  
               
                   // Lấy lý do từ chối từ bản ghi hiện tại (nếu có)
                   
@@ -268,18 +324,12 @@ const adminJs = new AdminJS({
               
                     // Lấy thông tin user liên quan đến pothole
                     
-                    const user = await User.findById(userId);
-              
-                    if (!user) {
-                      return {
-                        msg: 'Pothole has been rejected, but no user found.',
-                      };
-                    }
+                    
               
                     // Gửi thông báo qua API
                     console.log('Sending notification for pothole:', id);
                     try {
-                      await fetch('http://localhost:3000/api/notification', {
+                      await fetch('https://13a3-116-110-43-85.ngrok-free.app/api/notification', {
                         method: 'POST',
                         headers: {
                           'Content-Type': 'application/json',
@@ -288,7 +338,7 @@ const adminJs = new AdminJS({
                           potholeId: id,
                           status: 'rejected',
                           reason: rejectionReason,
-                          userId: userId,
+                          owner: username,
                         }),
                       });
                     } catch (error) {
@@ -310,12 +360,12 @@ const adminJs = new AdminJS({
                 },
               }
               
-          }
+          }  
           
           
           
-        },
-      },
+        }, 
+      }, 
       {
         resource: User,
         options: {
@@ -325,18 +375,7 @@ const adminJs = new AdminJS({
             verificationCodeExpires: { isVisible: false },
             createdAt: { isVisible: { list: true, show: true, edit: false } },
             updatedAt: { isVisible: { list: false, show: true } },
-            score: { type: 'number', isVisible: { list: true, edit: true } },
             profilePicture: { type: 'string', isVisible: { list: true, show: true, edit: true } },
-            lastLogin: {
-              type: 'date',
-              isVisible: { list: true, show: true, edit: false },
-              isSortable: true,
-            },
-            adminNote: {
-              type: 'string',
-              isVisible: { list: true, show: true, edit: true },
-              isRequired: false,
-            },
           },
           actions: {
             new: {
@@ -348,31 +387,7 @@ const adminJs = new AdminJS({
                 return request;
               },
             },
-            changePassword: {
-              actionType: 'record',
-              icon: 'Lock',
-              handler: async (request, response, context) => {
-                const user = context.record;
-                const { newPassword } = request.payload;
-      
-                if (!newPassword) {
-                  return { msg: 'Please provide a new password.' };
-                }
-      
-                const hashedPassword = await bcrypt.hash(newPassword, 10);
-                user.password = hashedPassword;
-
-                const {record, currentAdmin} = context;
-      
-                await user.save();
-                return {
-                  record: record.toJSON(currentAdmin),
-                  msg: 'Password has been changed successfully.',
-                };
-              },
-            },
-
-
+            
           },
         },
       },
@@ -426,6 +441,32 @@ const adminJs = new AdminJS({
             },
           },
         },
+      },
+
+      {
+        resource: Notification,
+        options: {
+          properties: {
+            createdAt: {
+              isVisible: { list: true, filter: true, show: true, edit: false }
+            },
+            updatedAt: {
+              isVisible: { list: true, filter: true, show: true, edit: false }
+            },
+            owner: {
+              isVisible: { list: true, filter: true, show: true, edit: false }
+            },
+            potholeId: {
+              isVisible: { list: true, filter: true, show: true, edit: false }
+            },
+            status: {
+              isVisible: { list: true, filter: true, show: true, edit: false }
+            },
+            reason: {
+              isVisible: { list: true, filter: true, show: true, edit: true }
+            }
+          }
+        }
       },
       
     ],

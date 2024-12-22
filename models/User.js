@@ -22,6 +22,7 @@ const userSchema = new mongoose.Schema({
   bio: { type: String },                 // Tiểu sử người dùng
   dateOfBirth: { type: String },         // Ngày sinh người dùng (từ nhánh AnhNguyen)
   profilePicture: { type: String },      // URL ảnh đại diện
+  since: { type: String },
   createdAt: { type: Date, default: Date.now }, // Thời gian tạo tài khoản
   updatedAt: { type: Date, default: Date.now }, // Thời gian cập nhật tài khoản
   score: { type: Number, default: 0 },   // Điểm người dùng (từ HEAD)
