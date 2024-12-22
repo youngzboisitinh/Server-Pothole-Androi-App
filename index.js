@@ -8,6 +8,8 @@ const navigation = require("./routes/navigation");
 const download = require("./routes/downloadmap");
 const profile = require("./routes/userRoute");
 const history = require("./routes/history");
+const journeyRoutes = require("./routes/journey.js");
+
 dotenv.config();
 
 const app = express();
@@ -33,6 +35,8 @@ app.use("/api/navigation", navigation);
 app.use("/api/download-map", download);
 app.use("/api/profile", profile);
 app.use("/api/history", history);
+app.use("/api/journey", journeyRoutes);
+
 mongoose
   .connect(process.env.MONGODB_URI)
   .then(() => console.log("Connected to MongoDB"))

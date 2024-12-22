@@ -32,4 +32,22 @@ router.post("/add", authenticateToken, async (req, res) => {
   }
 });
 
+router.get("/person", async (req, res) => {
+  const username = req.query.username;
+  console.log(username);
+  try {
+    // Find potholes by user authorId (author is assumed to be the user ID)
+    const userPotholes = await Pothole.find({ author: username });
+
+    if (userPotholes.length === 0) {
+      return res
+        .status(404)
+        .json({ error: "Không tìm thấy ổ gà nào của người dùng này" });
+    }
+    res.json(userPotholes);
+  } catch (error) {
+    console.error("Failed to fetch user potholes:", error);
+    res.status(500).json({ error: "Failed to fetch user potholes" });
+  }
+});
 module.exports = router;

@@ -6,7 +6,6 @@ const auth = require("../middleware/auth");
 router.get("/history", auth, async (req, res) => {
   try {
     const username = req.query.username;
-    console.log(username);
     const userPotholes = await Pothole.find({ author: username });
     res.status(200).json(userPotholes);
   } catch (error) {
