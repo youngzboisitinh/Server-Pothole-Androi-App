@@ -112,9 +112,14 @@ router.post("/login", async (req, res) => {
     // Cập nhật trạng thái người dùng thành 'online'
     user.status = "online";
     await user.save();
-    const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, {
-      expiresIn: "1h",
-    });
+    const token = jwt.sign(
+      { id: user._id, username: user.username },
+      process.env.JWT_SECRET,
+      {
+        expiresIn: "1h",
+      }
+    );
+
     res.json({
       token,
       message: "Đăng nhập thành công!",
