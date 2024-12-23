@@ -18,14 +18,6 @@ const PORT = process.env.PORT || 3000;
 app.use(express.json());
 
 // Middleware để log khi có thiết bị kết nối
-app.use((req, res, next) => {
-  console.log(
-    `Thiết bị kết nối từ IP: ${
-      req.ip
-    } - Thời gian: ${new Date().toLocaleString()}`
-  );
-  next();
-});
 
 // Sử dụng route xác thực
 app.use("/api/auth", authRoutes);

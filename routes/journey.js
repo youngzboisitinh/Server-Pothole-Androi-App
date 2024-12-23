@@ -49,7 +49,6 @@ router.get("/user/:userId", async (req, res) => {
   try {
     const { userId } = req.params;
     const journeys = await Journey.find({ user_id: userId });
-
     if (!journeys) {
       return res
         .status(404)
@@ -66,7 +65,6 @@ router.get("/user/:userId", async (req, res) => {
 //3. Lấy journey của người dùng hiện tại
 router.get("/current_user", auth, async (req, res) => {
   const username = req.query.username;
-
   try {
     const journeys = await Journey.find({ username: username });
 

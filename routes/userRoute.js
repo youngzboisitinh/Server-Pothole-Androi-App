@@ -3,7 +3,7 @@ const multer = require("multer");
 const path = require("path");
 const router = express.Router();
 const { User } = require("../models/User");
-
+const { Pothole } = require("../models/pothole");
 // Cấu hình Multer
 const storage = multer.diskStorage({
   destination: function (req, file, cb) {
@@ -44,9 +44,9 @@ const upload = multer({
 router.put("/update", upload.single("image"), async (req, res) => {
   try {
     const { email } = req.query;
-    const { name, address, sex, bio, birthday, phone, since } = req.body;
+    const { membertype, name, address, sex, bio, birthday, phone, since } =
+      req.body;
 
-    // Tìm người dùng qua email
     const user = await User.findOne({ email });
     if (!user) {
       return res.status(404).json({ message: "Người dùng không tồn tại." });
@@ -61,13 +61,8 @@ router.put("/update", upload.single("image"), async (req, res) => {
     if (bio) updates.bio = bio;
     if (birthday) updates.dateOfBirth = birthday;
     if (since) updates.since = since;
+    if (membertype) updates.membertype = membertype;
 
-    // Xử lý ảnh (nếu có)
-    if (req.file) {
-      updates.profilePicture = req.file.path;
-    }
-
-    // Gán giá trị mới cho user (thêm trường nếu chưa tồn tại)
     Object.keys(updates).forEach((key) => {
       user[key] = updates[key];
     });
@@ -101,16 +96,33 @@ router.get("/get", async (req, res) => {
       return res.status(404).json({ message: "User not found." });
     }
 
+    const username = user.username;
+    const userPotholes = await Pothole.find({ author: username });
+
+    // Tính số ngày đã tham gia
+    const sinceDate = new Date(user.since);
+    const currentDate = new Date();
+    const daysJoined = Math.ceil(
+      (currentDate - sinceDate) / (1000 * 60 * 60 * 24)
+    );
+
+    let rank = "bronze";
+    if (daysJoined > 180 && userPotholes.length > 50) {
+      rank = "gold";
+    } else if (daysJoined >= 30 && userPotholes.length >= 10) {
+      rank = "silver";
+    }
+
     const imagePath = user.profilePicture
       ? `${req.protocol}://${req.get("host")}/${user.profilePicture}`
       : null;
 
     res.status(200).json({
+      membertype: rank,
       name: user.nickname,
       birthday: user.dateOfBirth,
       address: user.address,
       bio: user.bio,
-      profilePicture: imagePath,
       since: user.since,
       sex: user.sex,
       phone: user.phoneNumber,

@@ -16,7 +16,7 @@ const userSchema = new mongoose.Schema({
   sex: { type: String },
   bio: { type: String },
   dateOfBirth: { type: String },
-  profilePicture: { type: String },
+  membertype: { type: String },
 });
 
 // Phương thức xác thực mật khẩu

@@ -34,7 +34,6 @@ router.post("/add", authenticateToken, async (req, res) => {
 
 router.get("/person", async (req, res) => {
   const username = req.query.username;
-  console.log(username);
   try {
     // Find potholes by user authorId (author is assumed to be the user ID)
     const userPotholes = await Pothole.find({ author: username });
