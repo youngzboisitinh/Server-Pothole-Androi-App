@@ -23,7 +23,7 @@ router.post("/signup", async (req, res) => {
       { expiresIn: "1h" }
     );
 
-    const verificationLink = `http://54.144.2.202:3000/api/auth/verify-email?token=${token}`;
+    const verificationLink = `http://54.90.195.155:3000/api/auth/verify-email?token=${token}`;
     const newUser = new User({ email, isVerified: false });
     await newUser.save();
     // Gửi email xác minh với link chứa token
